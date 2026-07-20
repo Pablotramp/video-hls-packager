@@ -38,6 +38,7 @@ class FileItem:
     source_path: Path
     output_path: Path   # for video: output directory; for non-video: output file
     is_video: bool
+    is_audio: bool = False
     status: FileStatus = FileStatus.PENDING
     error_msg: str = ""
 
@@ -61,4 +62,11 @@ STANDARD_RENDITIONS: List[Rendition] = [
 
 VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".m4v", ".avi", ".webm"})
 
+# Lossless / uncompressed audio formats that benefit from AAC conversion
+AUDIO_EXTENSIONS = frozenset({".wav", ".aif", ".aiff", ".flac"})
+
 HLS_SEGMENT_DURATION = 6  # seconds per HLS segment
+
+# Bitrate options (kbps) offered for audio optimization
+AUDIO_BITRATE_OPTIONS: List[int] = [96, 128, 160, 192, 256]
+AUDIO_BITRATE_DEFAULT: int = 160

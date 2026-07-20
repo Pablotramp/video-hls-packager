@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 from .ffmpeg import (
+    convert_audio_to_m4a,
     select_renditions,
     transcode_to_hls,
     write_master_playlist,
 )
 from .ffprobe import get_video_info
 from .file_utils import copy_file, scan_folder
-from .models import FileItem, FileStatus, PackageResult
+from .models import AUDIO_BITRATE_DEFAULT, FileItem, FileStatus, PackageResult
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +50,14 @@ class PackagerEngine:
         output_root: Path,
         overwrite: bool,
         callbacks: EngineCallbacks,
+        audio_optimize: bool = True,
+        audio_bitrate: int = AUDIO_BITRATE_DEFAULT,
     ) -> None:
         """Start the packaging run in a background thread."""
         self._cancel_event.clear()
         self._thread = threading.Thread(
             target=self._run,
-            args=(input_root, output_root, overwrite, callbacks),
+            args=(input_root, output_root, overwrite, callbacks, audio_optimize, audio_bitrate),
             daemon=True,
         )
         self._thread.start()
@@ -76,6 +79,8 @@ class PackagerEngine:
         output_root: Path,
         overwrite: bool,
         cb: EngineCallbacks,
+        audio_optimize: bool = True,
+        audio_bitrate: int = AUDIO_BITRATE_DEFAULT,
     ) -> None:
         result = PackageResult()
 
@@ -96,6 +101,8 @@ class PackagerEngine:
                 try:
                     if item.is_video:
                         self._process_video(item, overwrite, cb, result)
+                    elif item.is_audio and audio_optimize:
+                        self._process_audio(item, overwrite, audio_bitrate, cb, result)
                     else:
                         self._process_non_video(item, overwrite, cb, result)
                 except InterruptedError:
@@ -184,6 +191,39 @@ class PackagerEngine:
         item.status = FileStatus.DONE
         result.converted += 1
         cb.on_log(f"✓ Convertido: {item.source_path.name}")
+
+    def _process_audio(
+        self,
+        item: FileItem,
+        overwrite: bool,
+        bitrate_kbps: int,
+        cb: EngineCallbacks,
+        result: PackageResult,
+    ) -> None:
+        if item.output_path.exists() and not overwrite:
+            item.status = FileStatus.SKIPPED
+            result.skipped += 1
+            cb.on_log(f"→ Omitido (ya existe): {item.source_path.name}")
+            return
+
+        cb.on_log(
+            f"→ Convirtiendo audio: {item.source_path.name} → {item.output_path.name} "
+            f"(AAC {bitrate_kbps} kbps)"
+        )
+        item.status = FileStatus.PROCESSING
+        convert_audio_to_m4a(
+            input_path=item.source_path,
+            output_path=item.output_path,
+            bitrate_kbps=bitrate_kbps,
+            overwrite=overwrite,
+            cancel_event=self._cancel_event,
+            progress_cb=cb.on_file_progress,
+            log_cb=cb.on_log,
+        )
+
+        item.status = FileStatus.DONE
+        result.converted += 1
+        cb.on_log(f"✓ Audio convertido: {item.source_path.name}")
 
     def _process_non_video(
         self,
