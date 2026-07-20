@@ -162,7 +162,7 @@ def main(page: ft.Page) -> None:
                 ]),
                 bgcolor=ft.Colors.AMBER_900,
                 border_radius=6,
-                padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                padding=ft.Padding.symmetric(horizontal=12, vertical=8),
             )
             ffmpeg_banner.visible = True
             btn_start.disabled = True
@@ -241,7 +241,7 @@ def main(page: ft.Page) -> None:
             file_status_list.controls.append(
                 ft.Container(
                     content=row,
-                    padding=ft.padding.symmetric(horizontal=8, vertical=2),
+                    padding=ft.Padding.symmetric(horizontal=8, vertical=2),
                 )
             )
 
