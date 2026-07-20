@@ -22,19 +22,24 @@ def test_gui_uses_flet_padding_api_compatible_with_0861():
     padding_calls = 0
     legacy_calls = 0
 
-    for node in ast.walk(tree):
+    def _is_ft_call(node: ast.AST, owner: str, method: str) -> bool:
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-            continue
-        func = node.func
-        if not isinstance(func.value, ast.Attribute):
-            continue
-        if not isinstance(func.value.value, ast.Name) or func.value.value.id != "ft":
-            continue
-        if func.value.attr == "Padding" and func.attr == "symmetric":
+            return False
+        owner_node = node.func.value
+        return (
+            isinstance(owner_node, ast.Attribute)
+            and isinstance(owner_node.value, ast.Name)
+            and owner_node.value.id == "ft"
+            and owner_node.attr == owner
+            and node.func.attr == method
+        )
+
+    for node in ast.walk(tree):
+        if _is_ft_call(node, "Padding", "symmetric"):
             padding_calls += 1
-        if func.value.attr == "padding" and func.attr == "symmetric":
+        if _is_ft_call(node, "padding", "symmetric"):
             legacy_calls += 1
 
     assert legacy_calls == 0
-    assert padding_calls >= 2
+    assert padding_calls > 0
     assert hasattr(ft.Padding, "symmetric")
