@@ -63,7 +63,7 @@ def main(page: ft.Page) -> None:
     _log_lock = threading.Lock()
 
     # ---- File picker ----
-    folder_picker = ft.FilePicker()  # Service: auto-registers with page._services
+    folder_picker = ft.FilePicker()  # Service: auto-registers with the page on init
 
     # ---- Controls ----
     input_field = ft.TextField(
