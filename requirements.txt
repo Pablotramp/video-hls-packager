@@ -1,2 +1,3 @@
 flet>=0.21.2
+flet-desktop>=0.21.2
 pytest>=7.4.0
