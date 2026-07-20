@@ -6,7 +6,67 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pytest
 
-from hls_packager.file_utils import get_output_root, is_video_file, scan_folder
+from hls_packager.file_utils import get_output_root, is_audio_file, is_video_file, scan_folder
+
+
+class TestIsAudioFile:
+    def test_wav(self):
+        assert is_audio_file(Path("audio.wav")) is True
+
+    def test_wav_uppercase(self):
+        assert is_audio_file(Path("AUDIO.WAV")) is True
+
+    def test_flac(self):
+        assert is_audio_file(Path("music.flac")) is True
+
+    def test_aif(self):
+        assert is_audio_file(Path("sound.aif")) is True
+
+    def test_aiff(self):
+        assert is_audio_file(Path("sound.aiff")) is True
+
+    def test_non_audio_mp3(self):
+        assert is_audio_file(Path("compressed.mp3")) is False
+
+    def test_non_audio_mp4(self):
+        assert is_audio_file(Path("video.mp4")) is False
+
+    def test_non_audio_txt(self):
+        assert is_audio_file(Path("readme.txt")) is False
+
+
+class TestScanFolderAudio:
+    def test_wav_detected_as_audio(self, tmp_path):
+        (tmp_path / "sound.wav").write_bytes(b"RIFF")
+        output_root = tmp_path.parent / f"{tmp_path.name}_optimized"
+        items = scan_folder(tmp_path, output_root)
+        assert len(items) == 1
+        assert items[0].is_audio is True
+        assert items[0].is_video is False
+
+    def test_audio_output_has_m4a_extension(self, tmp_path):
+        (tmp_path / "track.wav").write_bytes(b"RIFF")
+        output_root = tmp_path.parent / f"{tmp_path.name}_optimized"
+        items = scan_folder(tmp_path, output_root)
+        assert items[0].output_path.suffix == ".m4a"
+        assert items[0].output_path.stem == "track"
+
+    def test_audio_preserves_folder_structure(self, tmp_path):
+        (tmp_path / "sub").mkdir()
+        (tmp_path / "sub" / "effect.wav").write_bytes(b"RIFF")
+        output_root = tmp_path.parent / f"{tmp_path.name}_optimized"
+        items = scan_folder(tmp_path, output_root)
+        assert items[0].output_path == output_root / "sub" / "effect.m4a"
+
+    def test_mixed_scan_counts(self, tmp_path):
+        (tmp_path / "video.mp4").write_text("fake")
+        (tmp_path / "audio.wav").write_bytes(b"RIFF")
+        (tmp_path / "doc.txt").write_text("text")
+        output_root = tmp_path.parent / f"{tmp_path.name}_optimized"
+        items = scan_folder(tmp_path, output_root)
+        assert sum(1 for i in items if i.is_video) == 1
+        assert sum(1 for i in items if i.is_audio) == 1
+        assert sum(1 for i in items if not i.is_video and not i.is_audio) == 1
 
 
 class TestIsVideoFile:

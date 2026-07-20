@@ -11,7 +11,7 @@ import flet as ft
 from .ffmpeg import check_ffmpeg
 from .ffprobe import check_ffprobe
 from .file_utils import get_output_root
-from .models import FileItem, FileStatus, PackageResult
+from .models import AUDIO_BITRATE_DEFAULT, AUDIO_BITRATE_OPTIONS, FileItem, FileStatus, PackageResult
 from .packager import EngineCallbacks, PackagerEngine
 from .report import write_reports
 
@@ -84,6 +84,19 @@ def main(page: ft.Page) -> None:
     overwrite_cb = ft.Checkbox(
         label="Sobrescribir archivos existentes",
         value=False,
+    )
+    audio_optimize_cb = ft.Checkbox(
+        label="Optimizar audio (WAV/FLAC/AIF → M4A AAC)",
+        value=True,
+    )
+    audio_bitrate_dd = ft.Dropdown(
+        label="Bitrate de audio",
+        value=str(AUDIO_BITRATE_DEFAULT),
+        width=160,
+        options=[
+            ft.dropdown.Option(str(br), f"{br} kbps")
+            for br in AUDIO_BITRATE_OPTIONS
+        ],
     )
 
     btn_browse = ft.ElevatedButton(
@@ -312,6 +325,8 @@ def main(page: ft.Page) -> None:
 
         output_root = get_output_root(input_root)
         overwrite = overwrite_cb.value or False
+        audio_optimize = audio_optimize_cb.value or False
+        audio_bitrate = int(audio_bitrate_dd.value or AUDIO_BITRATE_DEFAULT)
 
         file_status_list.controls.clear()
         log_list.controls.clear()
@@ -321,7 +336,8 @@ def main(page: ft.Page) -> None:
         btn_cancel.disabled = False
         page.update()
 
-        engine.start(input_root, output_root, overwrite, callbacks)
+        engine.start(input_root, output_root, overwrite, callbacks,
+                     audio_optimize=audio_optimize, audio_bitrate=audio_bitrate)
 
     def _cancel() -> None:
         engine.cancel()
@@ -363,6 +379,13 @@ def main(page: ft.Page) -> None:
                     btn_start,
                     btn_cancel,
                 ], spacing=12),
+
+                # Audio optimization row
+                ft.Row([
+                    audio_optimize_cb,
+                    ft.Container(width=16),
+                    audio_bitrate_dd,
+                ], spacing=8),
 
                 ft.Divider(height=1, color=ft.Colors.GREY_800),
 

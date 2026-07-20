@@ -25,7 +25,7 @@ def write_reports(
         file_entries.append({
             "source": str(item.source_path),
             "output": str(item.output_path),
-            "type": "video" if item.is_video else "file",
+            "type": "video" if item.is_video else ("audio" if item.is_audio else "file"),
             "status": item.status.value,
             "error": item.error_msg or None,
         })

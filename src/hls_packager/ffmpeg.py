@@ -22,6 +22,105 @@ def check_ffmpeg() -> bool:
     return shutil.which("ffmpeg") is not None
 
 
+def convert_audio_to_m4a(
+    input_path: Path,
+    output_path: Path,
+    bitrate_kbps: int,
+    overwrite: bool,
+    cancel_event: threading.Event,
+    progress_cb: Optional[Callable[[float], None]] = None,
+    log_cb: Optional[Callable[[str], None]] = None,
+) -> None:
+    """Convert *input_path* to AAC M4A at *bitrate_kbps* kbps.
+
+    Raises :class:`InterruptedError` on user cancellation or
+    :class:`RuntimeError` on FFmpeg failure.
+    """
+    if output_path.exists() and not overwrite:
+        raise FileExistsError(f"Ya existe: {output_path.name}")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        "ffmpeg",
+        "-y" if overwrite else "-n",
+        "-i", str(input_path),
+        "-c:a", "aac",
+        "-b:a", f"{bitrate_kbps}k",
+        "-movflags", "+faststart",
+        str(output_path),
+    ]
+
+    logger.debug("FFmpeg audio command:\n  " + " \\\n  ".join(cmd))
+    if log_cb:
+        log_cb(f"Iniciando conversión de audio: {input_path.name}")
+
+    # Probe duration for progress reporting
+    duration = _probe_audio_duration(input_path)
+
+    proc = subprocess.Popen(
+        cmd,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        text=True,
+        bufsize=1,
+    )
+
+    try:
+        for line in proc.stderr:  # type: ignore[union-attr]
+            line = line.rstrip()
+            if cancel_event.is_set():
+                proc.kill()
+                raise InterruptedError("Cancelado por el usuario")
+
+            if progress_cb and duration > 0:
+                m = re.search(r"time=(\d+):(\d+):([\d.]+)", line)
+                if m:
+                    h, mn, s = int(m.group(1)), int(m.group(2)), float(m.group(3))
+                    current_sec = h * 3600 + mn * 60 + s
+                    pct = min(1.0, current_sec / duration)
+                    progress_cb(pct)
+
+            if log_cb and line:
+                logger.debug(f"ffmpeg audio: {line}")
+    finally:
+        proc.wait()
+
+    if proc.returncode != 0 and not cancel_event.is_set():
+        raise RuntimeError(
+            f"FFmpeg finalizó con código de error {proc.returncode} "
+            f"al procesar {input_path.name}"
+        )
+
+    if progress_cb:
+        progress_cb(1.0)
+
+
+def _probe_audio_duration(path: Path) -> float:
+    """Return the audio duration of *path* in seconds, or 0 on failure."""
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "quiet",
+                "-print_format", "json",
+                "-show_format",
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0:
+            import json as _json
+            data = _json.loads(result.stdout)
+            dur = data.get("format", {}).get("duration")
+            if dur is not None:
+                return float(dur)
+    except Exception:
+        pass
+    return 0.0
+
+
 def select_renditions(source_height: int) -> List[Rendition]:
     """Choose which renditions to produce for a source of *source_height* pixels.
 

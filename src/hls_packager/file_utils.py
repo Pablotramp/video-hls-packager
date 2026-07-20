@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import List
 
-from .models import VIDEO_EXTENSIONS, FileItem
+from .models import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, FileItem
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 def is_video_file(path: Path) -> bool:
     """Return True if *path* is a recognised video file by extension."""
     return path.suffix.lower() in VIDEO_EXTENSIONS
+
+
+def is_audio_file(path: Path) -> bool:
+    """Return True if *path* is a lossless/uncompressed audio file by extension."""
+    return path.suffix.lower() in AUDIO_EXTENSIONS
 
 
 def get_output_root(input_root: Path) -> Path:
@@ -26,7 +31,8 @@ def scan_folder(input_root: Path, output_root: Path) -> List[FileItem]:
     """Recursively scan *input_root* and build the list of :class:`FileItem` objects.
 
     - Video files map to a subdirectory in *output_root* (no extension, same relative path).
-    - Non-video files mirror their path exactly under *output_root*.
+    - Audio files (lossless) map to a sibling ``.m4a`` file in *output_root*.
+    - Non-video/audio files mirror their path exactly under *output_root*.
     """
     items: List[FileItem] = []
     input_root = Path(input_root).resolve()
@@ -45,6 +51,15 @@ def scan_folder(input_root: Path, output_root: Path) -> List[FileItem]:
                 source_path=src_path,
                 output_path=out_path,
                 is_video=True,
+            ))
+        elif is_audio_file(src_path):
+            # Output path mirrors the source but with .m4a extension
+            out_path = output_root / rel.parent / (src_path.stem + ".m4a")
+            items.append(FileItem(
+                source_path=src_path,
+                output_path=out_path,
+                is_video=False,
+                is_audio=True,
             ))
         else:
             out_path = output_root / rel
