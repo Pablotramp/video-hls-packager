@@ -22,21 +22,21 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _STATUS_COLOR: Dict[FileStatus, str] = {
-    FileStatus.PENDING:    ft.colors.GREY_500,
-    FileStatus.PROCESSING: ft.colors.BLUE_400,
-    FileStatus.DONE:       ft.colors.GREEN_600,
-    FileStatus.COPIED:     ft.colors.TEAL_400,
-    FileStatus.SKIPPED:    ft.colors.AMBER_600,
-    FileStatus.ERROR:      ft.colors.RED_600,
+    FileStatus.PENDING:    ft.Colors.GREY_500,
+    FileStatus.PROCESSING: ft.Colors.BLUE_400,
+    FileStatus.DONE:       ft.Colors.GREEN_600,
+    FileStatus.COPIED:     ft.Colors.TEAL_400,
+    FileStatus.SKIPPED:    ft.Colors.AMBER_600,
+    FileStatus.ERROR:      ft.Colors.RED_600,
 }
 
 _STATUS_ICON: Dict[FileStatus, str] = {
-    FileStatus.PENDING:    ft.icons.HOURGLASS_EMPTY,
-    FileStatus.PROCESSING: ft.icons.SYNC,
-    FileStatus.DONE:       ft.icons.CHECK_CIRCLE,
-    FileStatus.COPIED:     ft.icons.CONTENT_COPY,
-    FileStatus.SKIPPED:    ft.icons.SKIP_NEXT,
-    FileStatus.ERROR:      ft.icons.ERROR,
+    FileStatus.PENDING:    ft.Icons.HOURGLASS_EMPTY,
+    FileStatus.PROCESSING: ft.Icons.SYNC,
+    FileStatus.DONE:       ft.Icons.CHECK_CIRCLE,
+    FileStatus.COPIED:     ft.Icons.CONTENT_COPY,
+    FileStatus.SKIPPED:    ft.Icons.SKIP_NEXT,
+    FileStatus.ERROR:      ft.Icons.ERROR,
 }
 
 MAX_LOG_LINES = 500
@@ -72,15 +72,15 @@ def main(page: ft.Page) -> None:
         hint_text="Selecciona la carpeta que contiene los videos…",
         expand=True,
         read_only=False,
-        border_color=ft.colors.BLUE_400,
+        border_color=ft.Colors.BLUE_400,
         on_change=lambda e: _on_input_changed(),
     )
     output_field = ft.TextField(
         label="Carpeta de salida (auto)",
         read_only=True,
         expand=True,
-        border_color=ft.colors.GREY_600,
-        color=ft.colors.GREY_400,
+        border_color=ft.Colors.GREY_600,
+        color=ft.Colors.GREY_400,
     )
     overwrite_cb = ft.Checkbox(
         label="Sobrescribir archivos existentes",
@@ -89,30 +89,30 @@ def main(page: ft.Page) -> None:
 
     btn_browse = ft.ElevatedButton(
         "Seleccionar…",
-        icon=ft.icons.FOLDER_OPEN,
+        icon=ft.Icons.FOLDER_OPEN,
         on_click=lambda e: folder_picker.get_directory_path(
             dialog_title="Selecciona la carpeta de origen"
         ),
     )
     btn_start = ft.ElevatedButton(
         "Iniciar",
-        icon=ft.icons.PLAY_ARROW,
-        bgcolor=ft.colors.GREEN_700,
-        color=ft.colors.WHITE,
+        icon=ft.Icons.PLAY_ARROW,
+        bgcolor=ft.Colors.GREEN_700,
+        color=ft.Colors.WHITE,
         disabled=True,
         on_click=lambda e: _start(),
     )
     btn_cancel = ft.ElevatedButton(
         "Cancelar",
-        icon=ft.icons.STOP,
-        bgcolor=ft.colors.RED_700,
-        color=ft.colors.WHITE,
+        icon=ft.Icons.STOP,
+        bgcolor=ft.Colors.RED_700,
+        color=ft.Colors.WHITE,
         disabled=True,
         on_click=lambda e: _cancel(),
     )
 
-    progress_bar = ft.ProgressBar(value=0, expand=True, color=ft.colors.BLUE_400)
-    progress_label = ft.Text("", size=12, color=ft.colors.GREY_400)
+    progress_bar = ft.ProgressBar(value=0, expand=True, color=ft.Colors.BLUE_400)
+    progress_label = ft.Text("", size=12, color=ft.Colors.GREY_400)
 
     file_status_list = ft.ListView(expand=True, spacing=2, padding=4)
     log_list = ft.ListView(expand=True, spacing=1, padding=4, auto_scroll=True)
@@ -151,17 +151,17 @@ def main(page: ft.Page) -> None:
             tools_str = " y ".join(missing)
             ffmpeg_banner.content = ft.Container(
                 content=ft.Row([
-                    ft.Icon(ft.icons.WARNING_AMBER, color=ft.colors.AMBER_400, size=20),
+                    ft.Icon(ft.Icons.WARNING_AMBER, color=ft.Colors.AMBER_400, size=20),
                     ft.Text(
                         f"⚠ {tools_str.upper()} no encontrado(s). "
                         "Instala FFmpeg y asegúrate de que esté en el PATH del sistema. "
                         "Descarga: https://ffmpeg.org/download.html",
-                        color=ft.colors.AMBER_300,
+                        color=ft.Colors.AMBER_300,
                         size=13,
                         expand=True,
                     ),
                 ]),
-                bgcolor=ft.colors.AMBER_900,
+                bgcolor=ft.Colors.AMBER_900,
                 border_radius=6,
                 padding=ft.padding.symmetric(horizontal=12, vertical=8),
             )
@@ -173,7 +173,7 @@ def main(page: ft.Page) -> None:
     def _log(msg: str) -> None:
         with _log_lock:
             log_list.controls.append(
-                ft.Text(msg, size=11, color=ft.colors.GREY_300, selectable=True)
+                ft.Text(msg, size=11, color=ft.Colors.GREY_300, selectable=True)
             )
             if len(log_list.controls) > MAX_LOG_LINES:
                 log_list.controls.pop(0)
@@ -213,7 +213,7 @@ def main(page: ft.Page) -> None:
             return
         row = _file_row_map[key]
         status = item.status
-        # ft.Icon uses `.name` for the icon identifier (str from ft.icons)
+        # ft.Icon uses `.name` for the icon identifier (str from ft.Icons)
         row.controls[0].name = _STATUS_ICON[status]    # type: ignore[attr-defined]
         row.controls[0].color = _STATUS_COLOR[status]  # type: ignore[attr-defined]
         row.controls[2].value = status.value            # type: ignore[attr-defined]
@@ -223,7 +223,7 @@ def main(page: ft.Page) -> None:
                 ft.Text(
                     f"  {item.error_msg}",
                     size=10,
-                    color=ft.colors.RED_400,
+                    color=ft.Colors.RED_400,
                     italic=True,
                 )
             )
@@ -338,18 +338,18 @@ def main(page: ft.Page) -> None:
             controls=[
                 # Header
                 ft.Row([
-                    ft.Icon(ft.icons.VIDEO_LIBRARY, color=ft.colors.BLUE_400, size=28),
+                    ft.Icon(ft.Icons.VIDEO_LIBRARY, color=ft.Colors.BLUE_400, size=28),
                     ft.Text(
                         "HLS Video Packager",
                         size=22,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.colors.BLUE_300,
+                        color=ft.Colors.BLUE_300,
                     ),
                 ]),
 
                 ffmpeg_banner,
 
-                ft.Divider(height=1, color=ft.colors.GREY_800),
+                ft.Divider(height=1, color=ft.Colors.GREY_800),
 
                 # Input row
                 ft.Row([input_field, btn_browse], spacing=8),
@@ -365,16 +365,16 @@ def main(page: ft.Page) -> None:
                     btn_cancel,
                 ], spacing=12),
 
-                ft.Divider(height=1, color=ft.colors.GREY_800),
+                ft.Divider(height=1, color=ft.Colors.GREY_800),
 
                 # Progress
                 ft.Row([
-                    ft.Text("Progreso:", size=12, color=ft.colors.GREY_400),
+                    ft.Text("Progreso:", size=12, color=ft.Colors.GREY_400),
                     progress_bar,
                     progress_label,
                 ], spacing=8),
 
-                ft.Divider(height=1, color=ft.colors.GREY_800),
+                ft.Divider(height=1, color=ft.Colors.GREY_800),
 
                 # Files + Logs (two-panel)
                 ft.Row(
@@ -389,14 +389,14 @@ def main(page: ft.Page) -> None:
                                     "Archivos",
                                     size=13,
                                     weight=ft.FontWeight.BOLD,
-                                    color=ft.colors.GREY_400,
+                                    color=ft.Colors.GREY_400,
                                 ),
                                 ft.Container(
                                     content=file_status_list,
                                     expand=True,
-                                    bgcolor=ft.colors.GREY_900,
+                                    bgcolor=ft.Colors.GREY_900,
                                     border_radius=6,
-                                    border=ft.border.all(1, ft.colors.GREY_800),
+                                    border=ft.border.all(1, ft.Colors.GREY_800),
                                 ),
                             ],
                         ),
@@ -408,14 +408,14 @@ def main(page: ft.Page) -> None:
                                     "Log",
                                     size=13,
                                     weight=ft.FontWeight.BOLD,
-                                    color=ft.colors.GREY_400,
+                                    color=ft.Colors.GREY_400,
                                 ),
                                 ft.Container(
                                     content=log_list,
                                     expand=True,
-                                    bgcolor=ft.colors.GREY_900,
+                                    bgcolor=ft.Colors.GREY_900,
                                     border_radius=6,
-                                    border=ft.border.all(1, ft.colors.GREY_800),
+                                    border=ft.border.all(1, ft.Colors.GREY_800),
                                 ),
                             ],
                         ),
