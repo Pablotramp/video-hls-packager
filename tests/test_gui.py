@@ -1,4 +1,5 @@
 """Smoke tests for GUI module compatibility."""
+import ast
 import inspect
 import sys
 from pathlib import Path
@@ -17,7 +18,23 @@ def test_gui_module_imports_with_current_flet_api():
 def test_gui_uses_flet_padding_api_compatible_with_0861():
     import hls_packager.gui as gui
 
-    source = inspect.getsource(gui)
-    assert "ft.padding.symmetric(" not in source
-    assert source.count("ft.Padding.symmetric(") >= 2
+    tree = ast.parse(inspect.getsource(gui))
+    padding_calls = 0
+    legacy_calls = 0
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        func = node.func
+        if not isinstance(func.value, ast.Attribute):
+            continue
+        if not isinstance(func.value.value, ast.Name) or func.value.value.id != "ft":
+            continue
+        if func.value.attr == "Padding" and func.attr == "symmetric":
+            padding_calls += 1
+        if func.value.attr == "padding" and func.attr == "symmetric":
+            legacy_calls += 1
+
+    assert legacy_calls == 0
+    assert padding_calls >= 2
     assert hasattr(ft.Padding, "symmetric")
