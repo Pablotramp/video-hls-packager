@@ -1,4 +1,5 @@
 """FFmpeg wrapper — multi-bitrate HLS transcoding with .ts segments."""
+import json
 import logging
 import re
 import shutil
@@ -111,8 +112,7 @@ def _probe_audio_duration(path: Path) -> float:
             timeout=30,
         )
         if result.returncode == 0:
-            import json as _json
-            data = _json.loads(result.stdout)
+            data = json.loads(result.stdout)
             dur = data.get("format", {}).get("duration")
             if dur is not None:
                 return float(dur)
