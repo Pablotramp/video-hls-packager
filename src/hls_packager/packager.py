@@ -101,7 +101,8 @@ class PackagerEngine:
                 except InterruptedError:
                     cb.on_log("⚠ Proceso cancelado por el usuario.")
                     break
-                except Exception as exc:  # noqa: BLE001
+                except (OSError, RuntimeError, ValueError, TypeError) as exc:
+                    # Per-file errors must not abort the batch; log and continue
                     item.status = FileStatus.ERROR
                     item.error_msg = str(exc)
                     result.errors += 1
@@ -109,12 +110,23 @@ class PackagerEngine:
                     result.error_details.append(msg)
                     cb.on_log(msg)
                     logger.exception(f"Error processing {item.source_path}")
+                except Exception as exc:  # unexpected — log and continue
+                    item.status = FileStatus.ERROR
+                    item.error_msg = str(exc)
+                    result.errors += 1
+                    msg = f"✗ ERROR inesperado [{item.source_path.name}]: {exc}"
+                    result.error_details.append(msg)
+                    cb.on_log(msg)
+                    logger.exception(f"Unexpected error processing {item.source_path}")
 
                 cb.on_file_done(item, idx + 1, total)
 
-        except Exception as exc:  # noqa: BLE001
+        except (OSError, RuntimeError) as exc:
             cb.on_log(f"✗ Error fatal: {exc}")
             logger.exception("Fatal error in packager engine")
+        except Exception as exc:  # unexpected fatal — log and surface
+            cb.on_log(f"✗ Error fatal inesperado: {exc}")
+            logger.exception("Unexpected fatal error in packager engine")
         finally:
             cb.on_done(result)
 

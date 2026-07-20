@@ -11,6 +11,11 @@ from .models import HLS_SEGMENT_DURATION, Rendition, STANDARD_RENDITIONS
 
 logger = logging.getLogger(__name__)
 
+# Bitrate calculation constants for the "low" fallback rendition
+_MIN_LOW_BITRATE_KBPS = 400
+_REFERENCE_BITRATE_480P_KBPS = 1200
+_REFERENCE_HEIGHT_480P = 480
+
 
 def check_ffmpeg() -> bool:
     """Return True if ``ffmpeg`` is available on PATH."""
@@ -27,7 +32,10 @@ def select_renditions(source_height: int) -> List[Rendition]:
     """
     applicable = [r for r in STANDARD_RENDITIONS if r.height <= source_height]
     if not applicable:
-        low_bitrate = max(400, int(1200 * source_height / 480))
+        low_bitrate = max(
+            _MIN_LOW_BITRATE_KBPS,
+            int(_REFERENCE_BITRATE_480P_KBPS * source_height / _REFERENCE_HEIGHT_480P),
+        )
         applicable = [Rendition(name="low", height=source_height, video_bitrate=low_bitrate)]
     return applicable
 

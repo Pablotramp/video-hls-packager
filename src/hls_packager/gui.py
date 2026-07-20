@@ -213,6 +213,7 @@ def main(page: ft.Page) -> None:
             return
         row = _file_row_map[key]
         status = item.status
+        # ft.Icon uses `.name` for the icon identifier (str from ft.icons)
         row.controls[0].name = _STATUS_ICON[status]    # type: ignore[attr-defined]
         row.controls[0].color = _STATUS_COLOR[status]  # type: ignore[attr-defined]
         row.controls[2].value = status.value            # type: ignore[attr-defined]
@@ -272,7 +273,7 @@ def main(page: ft.Page) -> None:
             try:
                 write_reports(Path(out_root_str), result, file_items)
                 _log(f"📄 Informe guardado en: {out_root_str}")
-            except Exception as exc:  # noqa: BLE001
+            except (OSError, PermissionError) as exc:
                 _log(f"No se pudo guardar el informe: {exc}")
 
         # Summary

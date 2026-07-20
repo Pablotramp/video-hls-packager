@@ -63,7 +63,10 @@ class TestSelectRenditions:
 class TestFileStatus:
     def test_enum_values_are_spanish(self):
         assert FileStatus.PENDING.value == "Pendiente"
+        assert FileStatus.PROCESSING.value == "Procesando"
         assert FileStatus.DONE.value == "Listo"
+        assert FileStatus.COPIED.value == "Copiado"
+        assert FileStatus.SKIPPED.value == "Omitido"
         assert FileStatus.ERROR.value == "Error"
 
     def test_all_statuses_exist(self):
