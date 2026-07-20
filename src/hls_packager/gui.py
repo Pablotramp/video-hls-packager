@@ -63,8 +63,7 @@ def main(page: ft.Page) -> None:
     _log_lock = threading.Lock()
 
     # ---- File picker ----
-    folder_picker = ft.FilePicker()
-    page.overlay.append(folder_picker)
+    folder_picker = ft.FilePicker()  # Service: auto-registers with the page on init
 
     # ---- Controls ----
     input_field = ft.TextField(
@@ -90,9 +89,6 @@ def main(page: ft.Page) -> None:
     btn_browse = ft.ElevatedButton(
         "Seleccionar…",
         icon=ft.Icons.FOLDER_OPEN,
-        on_click=lambda e: folder_picker.get_directory_path(
-            dialog_title="Selecciona la carpeta de origen"
-        ),
     )
     btn_start = ft.ElevatedButton(
         "Iniciar",
@@ -120,13 +116,16 @@ def main(page: ft.Page) -> None:
     ffmpeg_banner = ft.Container(visible=False)
 
     # ---- File picker callback ----
-    def _on_folder_picked(e: ft.FilePickerResultEvent) -> None:
-        if e.path:
-            input_field.value = e.path
+    async def _on_browse_click(e) -> None:
+        path = await folder_picker.get_directory_path(
+            dialog_title="Selecciona la carpeta de origen"
+        )
+        if path:
+            input_field.value = path
             _on_input_changed()
             page.update()
 
-    folder_picker.on_result = _on_folder_picked
+    btn_browse.on_click = _on_browse_click
 
     def _on_input_changed() -> None:
         path_str = (input_field.value or "").strip()

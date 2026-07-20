@@ -18,8 +18,8 @@ except ImportError:
 
 datas = []
 if flet_dir:
-    # Include Flet's built-in assets and views
-    for pattern in ("app/", "controls/", "utils/"):
+    # Include Flet's built-in assets (controls/, utils/ exist in 0.86.x; app/ is now app.py)
+    for pattern in ("controls/", "utils/"):
         target = flet_dir / pattern
         if target.exists():
             datas.append((str(target), f"flet/{pattern}"))
@@ -33,6 +33,7 @@ a = Analysis(
         "flet",
         "flet.app",
         "flet_core",
+        "flet_desktop",
         "hls_packager",
         "hls_packager.gui",
         "hls_packager.packager",
