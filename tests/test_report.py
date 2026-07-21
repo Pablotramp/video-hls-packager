@@ -42,6 +42,9 @@ def test_write_reports_generates_manifest_with_sorted_relative_paths(tmp_path: P
     assert "nested/video/segment.tmp" not in files
     assert "scratch.partial" not in files
     assert "~$lock.txt" not in files
+    assert "nested/video/segment.tmp" in actual_files
+    assert "scratch.partial" in actual_files
+    assert "~$lock.txt" in actual_files
     assert "_manifest.json" in files
     assert files == expected_files
 

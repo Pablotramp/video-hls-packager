@@ -54,7 +54,10 @@ def _collect_manifest_files(output_root: Path) -> List[str]:
 
 
 def write_manifest(output_root: Path) -> None:
-    """Write ``_manifest.json`` in *output_root* with file inventory."""
+    """Write ``_manifest.json`` in *output_root* with file inventory.
+
+    ``generatedAt`` is written as ISO-8601 in UTC with second precision.
+    """
     output_root.mkdir(parents=True, exist_ok=True)
     manifest_path = output_root / _MANIFEST_FILENAME
 
