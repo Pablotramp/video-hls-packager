@@ -122,7 +122,7 @@ pyinstaller video_hls_packager.spec
 5. Haz clic en **"Iniciar"**.
 6. Observa el progreso en la barra y los logs en tiempo real.
 7. Haz clic en **"Cancelar"** en cualquier momento para detener el proceso.
-8. Al terminar, se generan `conversion_report.json` y `conversion_report.txt` en la carpeta de salida.
+8. Al terminar, se generan `conversion_report.json`, `conversion_report.txt` y `_manifest.json` en la carpeta de salida.
 
 ---
 
@@ -130,6 +130,7 @@ pyinstaller video_hls_packager.spec
 
 ```
 proyecto_optimized/
+├── _manifest.json
 ├── conversion_report.json
 ├── conversion_report.txt
 ├── imagen.jpg                  ← copiado tal cual
