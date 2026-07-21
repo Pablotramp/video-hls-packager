@@ -1,13 +1,77 @@
-"""Report generation — writes conversion_report.json and conversion_report.txt."""
+"""Report generation for conversion reports and final output manifest."""
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
 from .models import FileItem, FileStatus, PackageResult
 
 logger = logging.getLogger(__name__)
+
+_MANIFEST_FILENAME = "_manifest.json"
+_TEMP_FILE_SUFFIXES = (
+    ".tmp",
+    ".temp",
+    ".partial",
+    ".part",
+    ".swp",
+    ".swo",
+    ".crdownload",
+)
+_TEMP_FILE_PREFIXES = ("~$", ".~")
+
+
+def _is_temporary_file(path: Path) -> bool:
+    """Return True when *path* looks like a temporary/intermediate file."""
+    name = path.name.lower()
+    if name.endswith("~"):
+        return True
+    if any(name.startswith(prefix) for prefix in _TEMP_FILE_PREFIXES):
+        return True
+    if any(name.endswith(suffix) for suffix in _TEMP_FILE_SUFFIXES):
+        return True
+    return False
+
+
+def _collect_manifest_files(output_root: Path) -> List[str]:
+    """Return deterministic relative file list for ``_manifest.json``."""
+    files: Set[str] = set()
+
+    for abs_path in output_root.rglob("*"):
+        if not abs_path.is_file():
+            continue
+
+        rel_path = abs_path.relative_to(output_root)
+        if _is_temporary_file(rel_path):
+            continue
+        files.add(rel_path.as_posix())
+
+    # Ensure the final inventory mirrors the finished output tree, including
+    # the manifest file that is about to be written.
+    files.add(_MANIFEST_FILENAME)
+    return sorted(files)
+
+
+def write_manifest(output_root: Path) -> None:
+    """Write ``_manifest.json`` in *output_root* with file inventory."""
+    output_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = output_root / _MANIFEST_FILENAME
+
+    data = {
+        "version": 1,
+        "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "files": _collect_manifest_files(output_root),
+    }
+
+    try:
+        manifest_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        logger.info("Manifest written: %s", manifest_path)
+    except OSError as exc:
+        raise RuntimeError(f"Could not generate {_MANIFEST_FILENAME}: {exc}") from exc
 
 
 def write_reports(
@@ -90,3 +154,5 @@ def write_reports(
         logger.info(f"TXT report written: {txt_path}")
     except OSError as exc:
         logger.error(f"Could not write TXT report: {exc}")
+
+    write_manifest(output_root)
