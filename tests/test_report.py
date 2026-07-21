@@ -31,6 +31,7 @@ def test_write_reports_generates_manifest_with_sorted_relative_paths(tmp_path: P
         for path in output_root.rglob("*")
         if path.is_file()
     )
+    expected_files = [p for p in actual_files if p not in {"nested/video/segment.tmp", "scratch.partial", "~$lock.txt"}]
 
     assert manifest["version"] == 1
     generated_at = datetime.fromisoformat(manifest["generatedAt"])
@@ -42,7 +43,7 @@ def test_write_reports_generates_manifest_with_sorted_relative_paths(tmp_path: P
     assert "scratch.partial" not in files
     assert "~$lock.txt" not in files
     assert "_manifest.json" in files
-    assert files == [p for p in actual_files if p not in {"nested/video/segment.tmp", "scratch.partial", "~$lock.txt"}]
+    assert files == expected_files
 
 
 def test_write_reports_raises_runtime_error_when_manifest_write_fails(
