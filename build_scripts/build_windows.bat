@@ -6,7 +6,7 @@ echo === HLS Video Packager - Windows Build ===
 
 pip install pyinstaller flet --upgrade
 
-pyinstaller video_hls_packager.spec --clean --noconfirm
+python -m PyInstaller video_hls_packager.spec --clean --noconfirm
 
 echo.
 echo === Build complete ===
