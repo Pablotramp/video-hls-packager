@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 from .ffmpeg import (
+    capture_frame_jpg,
     convert_audio_to_m4a,
     select_renditions,
     transcode_to_hls,
@@ -52,12 +53,13 @@ class PackagerEngine:
         callbacks: EngineCallbacks,
         audio_optimize: bool = True,
         audio_bitrate: int = AUDIO_BITRATE_DEFAULT,
+        capture_frame: bool = False,
     ) -> None:
         """Start the packaging run in a background thread."""
         self._cancel_event.clear()
         self._thread = threading.Thread(
             target=self._run,
-            args=(input_root, output_root, overwrite, callbacks, audio_optimize, audio_bitrate),
+            args=(input_root, output_root, overwrite, callbacks, audio_optimize, audio_bitrate, capture_frame),
             daemon=True,
         )
         self._thread.start()
@@ -81,6 +83,7 @@ class PackagerEngine:
         cb: EngineCallbacks,
         audio_optimize: bool = True,
         audio_bitrate: int = AUDIO_BITRATE_DEFAULT,
+        capture_frame: bool = False,
     ) -> None:
         result = PackageResult()
 
@@ -100,7 +103,7 @@ class PackagerEngine:
 
                 try:
                     if item.is_video:
-                        self._process_video(item, overwrite, cb, result)
+                        self._process_video(item, overwrite, cb, result, capture_frame=capture_frame)
                     elif item.is_audio and audio_optimize:
                         self._process_audio(item, overwrite, audio_bitrate, cb, result)
                     else:
@@ -143,6 +146,7 @@ class PackagerEngine:
         overwrite: bool,
         cb: EngineCallbacks,
         result: PackageResult,
+        capture_frame: bool = False,
     ) -> None:
         master_pl = item.output_path / "master.m3u8"
         if master_pl.exists() and not overwrite:
@@ -187,6 +191,14 @@ class PackagerEngine:
             source_height=info.height,
             has_audio=info.has_audio,
         )
+
+        if capture_frame:
+            capture_frame_jpg(
+                input_path=item.source_path,
+                output_dir=item.output_path,
+                duration=info.duration,
+                log_cb=cb.on_log,
+            )
 
         item.status = FileStatus.DONE
         result.converted += 1
