@@ -207,6 +207,75 @@ def transcode_to_hls(
         progress_cb(1.0)
 
 
+_FRAME_CAPTURE_TIMEOUT_SECONDS = 60  # generous timeout for slow storage / large frames
+
+
+def capture_frame_jpg(
+    input_path: Path,
+    output_dir: Path,
+    duration: float,
+    log_cb: Optional[Callable[[str], None]] = None,
+) -> None:
+    """Capture a single frame between second 3 and 5 and save as ``frame.jpg``.
+
+    Chooses a timestamp of 4 s when the video is long enough, falls back to
+    3 s, then to the mid-point for very short clips.  The result is written as
+    ``<output_dir>/frame.jpg``.
+
+    Non-fatal: logs a warning on failure instead of raising.
+    """
+    if duration >= 5.0:
+        ts = 4.0   # midpoint of the 3-5 s window — avoids typical intro/title cards
+    elif duration >= 3.0:
+        ts = 3.0   # shortest acceptable timestamp inside the requested window
+    elif duration > 0:
+        ts = duration / 2.0  # very short clip: fall back to midpoint
+    else:
+        ts = 0.0   # unknown duration: grab first frame
+
+    frame_path = output_dir / "frame.jpg"
+    cmd = [
+        "ffmpeg", "-y",
+        "-ss", f"{ts:.3f}",
+        "-i", str(input_path),
+        "-frames:v", "1",
+        "-q:v", "2",
+        str(frame_path),
+    ]
+
+    logger.debug("FFmpeg capture frame command:\n  " + " \\\n  ".join(cmd))
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            timeout=_FRAME_CAPTURE_TIMEOUT_SECONDS,
+        )
+        if result.returncode == 0:
+            if log_cb:
+                log_cb(f"📸 Fotograma guardado: {frame_path}")
+        else:
+            msg = f"⚠ No se pudo capturar fotograma de {input_path.name} (código {result.returncode})"
+            logger.warning(msg)
+            if log_cb:
+                log_cb(msg)
+    except Exception as exc:
+        msg = f"⚠ No se pudo capturar fotograma de {input_path.name}: {exc}"
+        logger.warning(msg)
+        if result.returncode == 0:
+            if log_cb:
+                log_cb(f"📸 Fotograma guardado: {frame_path}")
+        else:
+            msg = f"⚠ No se pudo capturar fotograma de {input_path.name} (código {result.returncode})"
+            logger.warning(msg)
+            if log_cb:
+                log_cb(msg)
+    except Exception as exc:
+        msg = f"⚠ No se pudo capturar fotograma de {input_path.name}: {exc}"
+        logger.warning(msg)
+        if log_cb:
+            log_cb(msg)
+
+
 def write_master_playlist(
     output_dir: Path,
     renditions: List[Rendition],

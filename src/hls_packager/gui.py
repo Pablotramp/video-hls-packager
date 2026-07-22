@@ -89,6 +89,10 @@ def main(page: ft.Page) -> None:
         label="Optimizar audio (WAV/FLAC/AIF → M4A AAC)",
         value=True,
     )
+    capture_frame_cb = ft.Checkbox(
+        label="Capturar fotograma de portada (frame.jpg)",
+        value=False,
+    )
     audio_bitrate_dd = ft.Dropdown(
         label="Bitrate de audio",
         value=str(AUDIO_BITRATE_DEFAULT),
@@ -327,6 +331,7 @@ def main(page: ft.Page) -> None:
         overwrite = overwrite_cb.value or False
         audio_optimize = audio_optimize_cb.value or False
         audio_bitrate = int(audio_bitrate_dd.value or AUDIO_BITRATE_DEFAULT)
+        capture_frame = capture_frame_cb.value or False
 
         file_status_list.controls.clear()
         log_list.controls.clear()
@@ -337,7 +342,8 @@ def main(page: ft.Page) -> None:
         page.update()
 
         engine.start(input_root, output_root, overwrite, callbacks,
-                     audio_optimize=audio_optimize, audio_bitrate=audio_bitrate)
+                     audio_optimize=audio_optimize, audio_bitrate=audio_bitrate,
+                     capture_frame=capture_frame)
 
     def _cancel() -> None:
         engine.cancel()
@@ -385,6 +391,11 @@ def main(page: ft.Page) -> None:
                     audio_optimize_cb,
                     ft.Container(width=16),
                     audio_bitrate_dd,
+                ], spacing=8),
+
+                # Frame capture row
+                ft.Row([
+                    capture_frame_cb,
                 ], spacing=8),
 
                 ft.Divider(height=1, color=ft.Colors.GREY_800),
