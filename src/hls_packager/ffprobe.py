@@ -3,6 +3,7 @@ import json
 import logging
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -11,9 +12,27 @@ from .models import VideoInfo
 logger = logging.getLogger(__name__)
 
 
+def _find_exe(name: str) -> str:
+    """Return path to *name* executable, preferring the app's own directory.
+
+    When running as a PyInstaller bundle, checks the directory that contains
+    the frozen executable before falling back to the system PATH.  This allows
+    shipping ``ffmpeg.exe`` / ``ffprobe.exe`` alongside ``HLSPackager.exe``
+    without requiring them to be installed system-wide.
+    """
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).parent
+        suffix = ".exe" if sys.platform == "win32" else ""
+        candidate = exe_dir / (name + suffix)
+        if candidate.is_file():
+            return str(candidate)
+    return name
+
+
 def check_ffprobe() -> bool:
-    """Return True if ``ffprobe`` is available on PATH."""
-    return shutil.which("ffprobe") is not None
+    """Return True if ``ffprobe`` is available (app dir or PATH)."""
+    exe = _find_exe("ffprobe")
+    return Path(exe).is_absolute() or shutil.which(exe) is not None
 
 
 def get_video_info(path: Path) -> Optional[VideoInfo]:
@@ -22,7 +41,7 @@ def get_video_info(path: Path) -> Optional[VideoInfo]:
     Returns ``None`` if the file cannot be probed or has no video stream.
     """
     cmd = [
-        "ffprobe", "-v", "quiet",
+        _find_exe("ffprobe"), "-v", "quiet",
         "-print_format", "json",
         "-show_streams", "-show_format",
         str(path),

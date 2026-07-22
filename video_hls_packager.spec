@@ -32,8 +32,6 @@ a = Analysis(
     hiddenimports=[
         "flet",
         "flet.app",
-        "flet_core",
-        "flet_desktop",
         "hls_packager",
         "hls_packager.gui",
         "hls_packager.packager",

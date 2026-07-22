@@ -4,6 +4,7 @@ import logging
 import re
 import shutil
 import subprocess
+import sys
 import threading
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -18,9 +19,27 @@ _REFERENCE_BITRATE_480P_KBPS = 1200
 _REFERENCE_HEIGHT_480P = 480
 
 
+def _find_exe(name: str) -> str:
+    """Return path to *name* executable, preferring the app's own directory.
+
+    When running as a PyInstaller bundle, checks the directory that contains
+    the frozen executable before falling back to the system PATH.  This allows
+    shipping ``ffmpeg.exe`` / ``ffprobe.exe`` alongside ``HLSPackager.exe``
+    without requiring them to be installed system-wide.
+    """
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).parent
+        suffix = ".exe" if sys.platform == "win32" else ""
+        candidate = exe_dir / (name + suffix)
+        if candidate.is_file():
+            return str(candidate)
+    return name
+
+
 def check_ffmpeg() -> bool:
-    """Return True if ``ffmpeg`` is available on PATH."""
-    return shutil.which("ffmpeg") is not None
+    """Return True if ``ffmpeg`` is available (app dir or PATH)."""
+    exe = _find_exe("ffmpeg")
+    return Path(exe).is_absolute() or shutil.which(exe) is not None
 
 
 def convert_audio_to_m4a(
@@ -43,7 +62,7 @@ def convert_audio_to_m4a(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        "ffmpeg",
+        _find_exe("ffmpeg"),
         "-y" if overwrite else "-n",
         "-i", str(input_path),
         "-c:a", "aac",
@@ -102,7 +121,7 @@ def _probe_audio_duration(path: Path) -> float:
     try:
         result = subprocess.run(
             [
-                "ffprobe", "-v", "quiet",
+                _find_exe("ffprobe"), "-v", "quiet",
                 "-print_format", "json",
                 "-show_format",
                 str(path),
@@ -235,7 +254,7 @@ def capture_frame_jpg(
 
     frame_path = output_dir / "frame.jpg"
     cmd = [
-        "ffmpeg", "-y",
+        _find_exe("ffmpeg"), "-y",
         "-ss", f"{ts:.3f}",
         "-i", str(input_path),
         "-frames:v", "1",
@@ -250,17 +269,6 @@ def capture_frame_jpg(
             capture_output=True,
             timeout=_FRAME_CAPTURE_TIMEOUT_SECONDS,
         )
-        if result.returncode == 0:
-            if log_cb:
-                log_cb(f"📸 Fotograma guardado: {frame_path}")
-        else:
-            msg = f"⚠ No se pudo capturar fotograma de {input_path.name} (código {result.returncode})"
-            logger.warning(msg)
-            if log_cb:
-                log_cb(msg)
-    except Exception as exc:
-        msg = f"⚠ No se pudo capturar fotograma de {input_path.name}: {exc}"
-        logger.warning(msg)
         if result.returncode == 0:
             if log_cb:
                 log_cb(f"📸 Fotograma guardado: {frame_path}")
@@ -330,7 +338,7 @@ def _build_cmd(
 ) -> List[str]:
     """Build the FFmpeg command for multi-output HLS transcoding."""
     n = len(renditions)
-    cmd: List[str] = ["ffmpeg", "-y" if overwrite else "-n", "-i", str(input_path)]
+    cmd: List[str] = [_find_exe("ffmpeg"), "-y" if overwrite else "-n", "-i", str(input_path)]
 
     # ---- filter_complex: split + scale each rendition ----
     if n > 1:
